@@ -9,6 +9,7 @@ return {
         markdown = { 'markdownlint' },
       }
 
+      lint.linters.markdownlint.args = vim.list_extend({ '--disable', 'MD013', 'MD041', 'MD033' }, lint.linters.markdownlint.args or { '--stdin' })
       -- To allow other plugins to add linters to require('lint').linters_by_ft,
       -- instead set linters_by_ft like this:
       -- lint.linters_by_ft = lint.linters_by_ft or {}

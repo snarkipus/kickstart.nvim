@@ -247,7 +247,7 @@ rtp:prepend(lazypath)
 -- NOTE: Here is where you install your plugins.
 require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
-  'NMAC427/guess-indent.nvim', -- Detect tabstop and shiftwidth automatically
+  { 'NMAC427/guess-indent.nvim', opts = {} }, -- Detect tabstop and shiftwidth automatically
 
   -- NOTE: Plugins can also be added by using a table,
   -- with the first argument being the link and the following
@@ -302,47 +302,8 @@ require('lazy').setup({
     'folke/which-key.nvim',
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
     opts = {
-      -- delay between pressing a key and opening which-key (milliseconds)
-      -- this setting is independent of vim.opt.timeoutlen
       delay = 0,
-      icons = {
-        -- set icon mappings to true if you have a Nerd Font
-        mappings = vim.g.have_nerd_font,
-        -- If you are using a Nerd Font: set icons.keys to an empty table which will use the
-        -- default which-key.nvim defined Nerd Font icons, otherwise define a string table
-        keys = vim.g.have_nerd_font and {} or {
-          Up = '<Up> ',
-          Down = '<Down> ',
-          Left = '<Left> ',
-          Right = '<Right> ',
-          C = '<C-…> ',
-          M = '<M-…> ',
-          D = '<D-…> ',
-          S = '<S-…> ',
-          CR = '<CR> ',
-          Esc = '<Esc> ',
-          ScrollWheelDown = '<ScrollWheelDown> ',
-          ScrollWheelUp = '<ScrollWheelUp> ',
-          NL = '<NL> ',
-          BS = '<BS> ',
-          Space = '<Space> ',
-          Tab = '<Tab> ',
-          F1 = '<F1>',
-          F2 = '<F2>',
-          F3 = '<F3>',
-          F4 = '<F4>',
-          F5 = '<F5>',
-          F6 = '<F6>',
-          F7 = '<F7>',
-          F8 = '<F8>',
-          F9 = '<F9>',
-          F10 = '<F10>',
-          F11 = '<F11>',
-          F12 = '<F12>',
-        },
-      },
-
-      -- Document existing key chains
+      icons = { mappings = vim.g.have_nerd_font },
       spec = {
         { '<leader>c', group = '[C]ode', mode = { 'n', 'x' } },
         { '<leader>d', group = '[D]ocument' },
@@ -665,6 +626,14 @@ require('lazy').setup({
       --  So, we create new capabilities with blink.cmp, and then broadcast that to the servers.
       local capabilities = require('blink.cmp').get_lsp_capabilities()
 
+      -- Mojo-specific Utility
+      local util = require 'lspconfig.util'
+
+      local function pixi_root(fname)
+        local found = vim.fs.find('pixi.toml', { path = fname, upward = true })
+        return found[1] and vim.fs.dirname(found[1]) or nil
+      end
+
       -- Enable the following language servers
       --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
       --
@@ -702,6 +671,18 @@ require('lazy').setup({
             },
           },
         },
+
+        -- ... inside your servers table:
+        mojo = {
+          filetypes = { 'mojo' },
+          root_dir = function(fname)
+            -- Only treat it as a mojo project if pixi.toml exists; otherwise fall back to git or cwd
+            return pixi_root(fname) or util.root_pattern '.git'(fname) or vim.fn.getcwd()
+          end,
+
+          -- Run via pixi so MODULAR_HOME is always correct for that project.
+          cmd = { 'pixi', 'run', 'mojo-lsp-server', '-I', '.' },
+        },
       }
 
       -- Ensure the servers and tools above are installed
@@ -718,6 +699,12 @@ require('lazy').setup({
       -- You can add other tools here that you want Mason to install
       -- for you, so that they are available from within Neovim.
       local ensure_installed = vim.tbl_keys(servers or {})
+
+      -- Mason does not provide a "mojo" package; prevent it from trying
+      ensure_installed = vim.tbl_filter(function(name)
+        return name ~= 'mojo'
+      end, ensure_installed)
+
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
       })
@@ -733,10 +720,27 @@ require('lazy').setup({
             -- by the server configuration above. Useful when disabling
             -- certain features of an LSP (for example, turning off formatting for ts_ls)
             server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-            require('lspconfig')[server_name].setup(server)
+            if vim.fn.has 'nvim-0.11' == 1 then
+              vim.lsp.config(server_name, server)
+              vim.lsp.enable(server_name)
+            else
+              require('lspconfig')[server_name].setup(server)
+            end
           end,
         },
       }
+      do
+        local server = servers.mojo
+        if server then
+          server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+          if vim.fn.has 'nvim-0.11' == 1 then
+            vim.lsp.config('mojo', server)
+            vim.lsp.enable 'mojo'
+          else
+            require('lspconfig').mojo.setup(server)
+          end
+        end
+      end
     end,
   },
 
@@ -772,6 +776,7 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        mojo = { 'lsp_format' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
@@ -947,8 +952,20 @@ require('lazy').setup({
     build = ':TSUpdate',
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
+    config = function(_, opts)
+      ---@diagnostic disable-next-line: inject-field
+      require('nvim-treesitter.parsers').get_parser_configs().mojo = {
+        install_info = {
+          url = 'https://github.com/lsh/tree-sitter-mojo',
+          files = { 'src/parser.c' },
+          branch = 'main',
+        },
+        filetype = 'mojo',
+      }
+      require('nvim-treesitter.configs').setup(opts)
+    end,
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'mojo' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -978,9 +995,9 @@ require('lazy').setup({
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
   -- require 'kickstart.plugins.debug',
-  -- require 'kickstart.plugins.indent_line',
-  -- require 'kickstart.plugins.lint',
-  -- require 'kickstart.plugins.autopairs',
+  require 'kickstart.plugins.indent_line',
+  require 'kickstart.plugins.lint',
+  require 'kickstart.plugins.autopairs',
   require 'kickstart.plugins.neo-tree',
   require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
@@ -988,7 +1005,7 @@ require('lazy').setup({
   --    This is the easiest way to modularize your config.
   --
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
-  -- { import = 'custom.plugins' },
+  { import = 'custom.plugins' },
   --
   -- For additional information with loading, sourcing and examples see `:help lazy.nvim-🔌-plugin-spec`
   -- Or use telescope!
