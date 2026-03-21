@@ -974,13 +974,13 @@ require('lazy').setup({
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
-    main = 'nvim-treesitter.configs',
+    main = 'nvim-treesitter',
     dependencies = {
       'nvim-treesitter/nvim-treesitter-textobjects',
       'nvim-treesitter/nvim-treesitter-context',
     },
     config = function(_, opts)
-      require('nvim-treesitter.parsers').get_parser_configs().mojo = {
+      require('nvim-treesitter.parsers').mojo = {
         install_info = {
           url = 'https://github.com/lsh/tree-sitter-mojo',
           files = { 'src/parser.c', 'src/scanner.c' },
@@ -988,7 +988,7 @@ require('lazy').setup({
         },
         filetype = 'mojo',
       }
-      require('nvim-treesitter.configs').setup(opts)
+      require('nvim-treesitter').setup(opts)
     end,
     opts = {
       ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'mojo' },
