@@ -33,6 +33,21 @@ local function check_treesitter_cli()
   end
 end
 
+local function check_node()
+  if vim.fn.executable 'node' == 0 then
+    vim.health.warn "Optional executable not found: 'node' (22 or later is required for Copilot)"
+    return
+  end
+
+  local output = vim.fn.system { 'node', '--version' }
+  local version = output:match 'v?(%d+%.%d+%.%d+)'
+  if version and vim.version.ge(vim.version.parse(version), '22.0.0') then
+    vim.health.ok('Node.js version: ' .. version)
+  else
+    vim.health.warn('Copilot requires Node.js 22 or later; found: ' .. vim.trim(output))
+  end
+end
+
 return {
   check = function()
     vim.health.start 'Custom Neovim configuration'
@@ -44,16 +59,17 @@ return {
     end
 
     vim.health.start 'Required base tools'
-    for _, name in ipairs { 'git', 'curl', 'tar' } do
+    for _, name in ipairs { 'git', 'curl', 'tar', 'unzip', 'gzip' } do
       executable(name, true)
     end
     check_compiler()
     check_treesitter_cli()
 
     vim.health.start 'Optional feature tools'
-    for _, name in ipairs { 'make', 'rg', 'node', 'npm' } do
+    for _, name in ipairs { 'make', 'rg', 'npm' } do
       executable(name, false)
     end
+    check_node()
 
     local mason_markdownlint = vim.fn.stdpath 'data' .. '/mason/bin/markdownlint'
     if vim.uv.fs_stat(mason_markdownlint) then

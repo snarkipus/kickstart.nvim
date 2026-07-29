@@ -136,6 +136,7 @@ This also restores native normal-mode `<C-e>` scrolling.
 |-- lua/
 |   |-- custom/
 |   |   |-- core.lua
+|   |   |-- health.lua
 |   |   |-- lazy.lua
 |   |   |-- mojo.lua
 |   |   `-- plugins/

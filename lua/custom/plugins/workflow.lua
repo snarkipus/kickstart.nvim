@@ -47,7 +47,7 @@ return {
           gitsigns.diffthis '@'
         end, 'Git diff against last commit')
         map('n', '<leader>tb', gitsigns.toggle_current_line_blame, 'Toggle git blame line')
-        map('n', '<leader>tD', gitsigns.preview_hunk_inline, 'Toggle deleted lines')
+        map('n', '<leader>tD', gitsigns.preview_hunk_inline, 'Preview hunk inline')
       end,
     },
   },

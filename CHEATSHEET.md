@@ -305,13 +305,16 @@ Most custom keybindings start with the leader key.
 | `<leader>hd` | n | Diff this |
 | `<leader>tb` | n | Toggle blame line |
 | `<leader>hD` | n | Diff against last commit |
-| `<leader>tD` | n | Preview deleted lines inline |
+| `<leader>tD` | n | Preview hunk inline |
 | `<leader>hs` | v | Stage hunk (visual) |
 | `<leader>hr` | v | Reset hunk (visual) |
 
 ---
 
 ## Treesitter
+
+Tree-sitter mappings are buffer-local and appear only when the active language
+provides the corresponding `textobjects` query capture.
 
 ### Text Objects
 
