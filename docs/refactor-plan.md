@@ -3,7 +3,9 @@
 ## Baseline
 
 The refactor starts from commit `fa6bc95`, which establishes the Neovim 0.12,
-Mojo, and Tree-sitter migration as a working baseline.
+Mojo, and Tree-sitter migration as the initial working baseline. Phase 0
+refreshes dependencies through Lazy and commits the resulting lockfile as the
+execution baseline for the structural phases.
 
 The current configuration starts successfully on Neovim 0.12.4. Mojo LSP and
 formatting resolve project-local tools, the custom Mojo parser is pinned, and
@@ -18,7 +20,8 @@ the Tree-sitter plugins use their current APIs.
 - Preserve current behavior unless this plan explicitly changes it.
 - Keep the configuration understandable without introducing a framework or
   custom DSL.
-- Bring the README, health checks, and cheatsheet in line with the runtime.
+- Bring the README, `AGENTS.md`, health checks, and cheatsheet in line with the
+  runtime.
 
 ## Non-Goals
 
@@ -86,8 +89,12 @@ This also restores native normal-mode `<C-e>` scrolling.
 
 - Blink owns the standard insert-mode completion keys, including `<C-y>`,
   `<C-n>`, `<C-p>`, and `<C-e>`.
-- Copilot returns to its Alt-based defaults for accept, next, previous, word,
-  and line actions.
+- Copilot uses explicit Alt-based mappings because the pinned and current
+  plugin releases do not provide suggestion key defaults:
+  - `<M-l>` accepts the suggestion.
+  - `<M-]>` and `<M-[>` select the next and previous suggestions.
+  - `<M-w>` and `<M-j>` accept the next word and line.
+  - `<M-e>` dismisses the suggestion.
 - Copilot and Blink live in the same module so their key policy remains visible.
 
 ### Ownership
@@ -102,8 +109,10 @@ This also restores native normal-mode `<C-e>` scrolling.
 - Keep parser installation, custom Mojo registration, highlighting,
   indentation, textobjects, and textobject mappings in one module.
 - Keep the Mojo grammar revision pinned and update it deliberately.
-- Install textobject mappings buffer-locally only when the language has a
-  usable parser and `textobjects` query.
+- Install each textobject mapping buffer-locally only when the language has a
+  usable parser and the `textobjects` query defines that mapping's capture.
+  The presence of a `textobjects.scm` file alone is insufficient because
+  languages expose different capture subsets.
 - Preserve native mappings in unsupported and parserless buffers.
 
 ### LSP
@@ -250,6 +259,22 @@ behavior is discoverable in one place.
 
 ## Implementation Phases
 
+### Phase 0: Refresh The Dependency Baseline
+
+1. Run `:Lazy check`, then update plugins through Lazy rather than editing
+   `lazy-lock.json` by hand.
+2. Review release notes for every major-version change before accepting it.
+3. Prefer current stable release tags where a plugin publishes maintained
+   releases. Keep existing branch tracking where tags are absent or stale.
+4. At minimum, refresh the Neovim 0.12-sensitive stack: LuaSnip, Blink,
+   Copilot, Mason, nvim-lspconfig, Neo-tree, Mini, Fidget, and Gitsigns.
+5. Verify startup, Copilot authentication and suggestions, completion, LSP
+   attachment, formatting, Mason tools, and the affected plugin surfaces.
+6. Commit the dependency and lockfile refresh separately from structural moves.
+
+Use Lazy's committed lockfile as the rollback boundary. Do not combine this
+dependency refresh with module extraction.
+
 ### Phase 1: Extract Core And Lazy
 
 1. Move startup globals, options, global mappings, and the yank autocmd into
@@ -296,8 +321,10 @@ dependencies.
 8. Deduplicate document-highlight autocmds per buffer.
 9. On detach, remove document-highlight autocmds only when no remaining client
    supports document highlighting for that buffer.
-10. Make Tree-sitter textobjects and motions buffer-local after confirming the
-    required query exists.
+10. Make each Tree-sitter textobject, motion, and swap mapping buffer-local
+    after confirming its specific capture exists in the active language's
+    `textobjects` query. Do not install an all-or-nothing mapping bundle based
+    only on query-file presence.
 11. Remove Neo-tree's eager `lazy = false` setting and load it through its key
     or command.
 12. Add missing Which-key groups where they improve discoverability.
@@ -308,14 +335,18 @@ dependencies.
 2. Validate the Tree-sitter CLI version, `tar`, `curl`, and a C compiler.
 3. Report Mojo environment managers and tools as optional project-level
    requirements.
-4. Rewrite the README as documentation for this configuration while retaining
+4. Add Mason's `markdownlint` package to the tool installation list and verify
+   that nvim-lint resolves the Mason-managed `markdownlint` executable.
+5. Rewrite the README as documentation for this configuration while retaining
    a link to upstream Kickstart.
-5. Remove stale comments that describe enabled plugin modules as optional
+6. Update `AGENTS.md` so its layout, extension points, validation commands, and
+   LSP ownership match the refactored configuration.
+7. Remove stale comments that describe enabled plugin modules as optional
    examples.
-6. Audit the cheatsheet against runtime mappings.
-7. Correct stale Gitsigns, Mini Surround, Neo-tree, Harpoon, and navigation
+8. Audit the cheatsheet against runtime mappings.
+9. Correct stale Gitsigns, Mini Surround, Neo-tree, Harpoon, and navigation
    entries.
-8. Update the cheatsheet date only after the runtime audit is complete.
+10. Update the cheatsheet date only after the runtime audit is complete.
 
 ## Validation
 
@@ -323,16 +354,16 @@ Run after each phase:
 
 ```sh
 stylua --check .
-luac -p init.lua lua/**/*.lua
-nvim --headless '+qa'
+git ls-files -z '*.lua' | xargs -0 -n1 luac -p
+nvim --headless -u ./init.lua '+qa'
 ```
 
 Run after the complete refactor:
 
 ```sh
-nvim --headless '+checkhealth' '+qa'
-nvim --headless '+checkhealth kickstart' '+qa'
-nvim --headless '+checkhealth nvim-treesitter' '+qa'
+nvim --headless -u ./init.lua '+checkhealth' '+qa'
+nvim --headless -u ./init.lua '+checkhealth kickstart' '+qa'
+nvim --headless -u ./init.lua '+checkhealth nvim-treesitter' '+qa'
 ```
 
 Also verify interactively:
@@ -343,31 +374,40 @@ Also verify interactively:
 - `<leader>1` through `<leader>4` select Harpoon entries.
 - `<leader>e` opens the Harpoon menu.
 - Blink owns `<C-y>`, `<C-n>`, `<C-p>`, and `<C-e>` in insert mode.
-- Copilot suggestion actions work through their Alt mappings.
+- Copilot suggestion actions work through `<M-l>`, `<M-]>`, `<M-[>`, `<M-w>`,
+  `<M-j>`, and `<M-e>`.
 - Lua, Rust, and Mojo attach exactly one expected LSP client.
 - Telescope-backed LSP mappings exist on the first attached buffer.
 - Document highlighting works correctly with one and multiple clients.
 - Mojo resolves LSP and formatter binaries from Pixi and virtual environments.
 - Tree-sitter highlighting works for every configured parser.
-- Tree-sitter textobjects override native mappings only when queries exist.
+- Each Tree-sitter textobject overrides a native mapping only when its specific
+  capture exists in the active language.
 - Markdown linting uses the Mason-managed executable.
 - Persistence, Trouble, Gitsigns, Neo-tree, and Flash retain expected behavior.
 
 ## Acceptance Criteria
 
+- The dependency baseline was refreshed through Lazy, breaking changes were
+  reviewed, and the resulting lockfile was committed separately.
 - `init.lua` contains only startup sequencing.
 - Every active plugin spec is under `lua/custom/plugins/`.
 - No active personal configuration remains under `lua/kickstart/plugins/`.
 - All imported plugin modules return lists consistently.
 - No known Harpoon/window or Copilot/Blink key conflict remains.
+- Copilot's explicit Alt mappings are implemented and documented.
 - Lua LS is configured and enabled once.
 - LSP highlight autocmds are safe for multiple clients.
-- Tree-sitter mappings are query-aware and buffer-local.
+- Tree-sitter mappings are capture-aware and buffer-local; unsupported captures
+  leave native mappings intact.
+- Mason installs `markdownlint`, and nvim-lint resolves that managed executable.
 - Headless startup, formatting, Lua syntax checks, and health checks pass.
-- README and cheatsheet describe the final runtime accurately.
+- README, `AGENTS.md`, and cheatsheet describe the final runtime accurately.
 
 ## Risks And Controls
 
+- Dependency changes can obscure structural regressions. Refresh and validate
+  the Lazy lockfile in a separate baseline commit before moving modules.
 - Moving many plugin specs can obscure behavioral regressions. Move one
   subsystem at a time and verify after each move.
 - Lazy merges duplicate specs by plugin identity. Preserve valid dependency
