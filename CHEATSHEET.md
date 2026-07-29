@@ -342,7 +342,7 @@ Most custom keybindings start with the leader key.
 
 | Key | Mode | Description |
 |-----|------|-------------|
-| `<leader>sn` | n | Swap with next parameter |
+| `<leader>sN` | n | Swap with next parameter |
 | `<leader>sp` | n | Swap with previous parameter |
 
 ---

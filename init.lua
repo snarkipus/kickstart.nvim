@@ -625,7 +625,13 @@ require('lazy').setup({
             return diagnostic_message[diagnostic.severity]
           end,
         },
-        jump = { float = true },
+        jump = {
+          on_jump = function(diagnostic, bufnr)
+            if diagnostic then
+              vim.diagnostic.open_float { bufnr = bufnr, scope = 'cursor', focus = false }
+            end
+          end,
+        },
       }
 
       -- LSP servers and clients are able to communicate to each other what features they support.
@@ -633,14 +639,6 @@ require('lazy').setup({
       --  When you add blink.cmp, luasnip, etc. Neovim now has *more* capabilities.
       --  So, we create new capabilities with blink.cmp, and then broadcast that to the servers.
       local capabilities = require('blink.cmp').get_lsp_capabilities()
-
-      -- Mojo-specific Utility
-      local util = require 'lspconfig.util'
-
-      local function pixi_root(fname)
-        local found = vim.fs.find('pixi.toml', { path = fname, upward = true })
-        return found[1] and vim.fs.dirname(found[1]) or nil
-      end
 
       -- Enable the following language servers
       --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
@@ -680,16 +678,15 @@ require('lazy').setup({
           },
         },
 
-        -- ... inside your servers table:
         mojo = {
-          filetypes = { 'mojo' },
-          root_dir = function(fname)
-            -- Only treat it as a mojo project if pixi.toml exists; otherwise fall back to git or cwd
-            return pixi_root(fname) or util.root_pattern '.git'(fname) or vim.fn.getcwd()
+          root_dir = function(bufnr, on_dir)
+            local path = vim.api.nvim_buf_get_name(bufnr)
+            on_dir(require('custom.mojo').root(path ~= '' and path or vim.fn.getcwd()))
           end,
-
-          -- Run via pixi so MODULAR_HOME is always correct for that project.
-          cmd = { 'pixi', 'run', 'mojo-lsp-server', '-I', '.' },
+          cmd = function(dispatchers, config)
+            local command = { require('custom.mojo').executable(config.root_dir, 'mojo-lsp-server') }
+            return vim.lsp.rpc.start(command, dispatchers, { cwd = config.root_dir })
+          end,
         },
       }
 
@@ -739,7 +736,9 @@ require('lazy').setup({
         on_init = function(client)
           if client.workspace_folders then
             local path = client.workspace_folders[1].name
-            if path ~= vim.fn.stdpath 'config' and (vim.uv.fs_stat(path .. '/.luarc.json') or vim.uv.fs_stat(path .. '/.luarc.jsonc')) then return end
+            if path ~= vim.fn.stdpath 'config' and (vim.uv.fs_stat(path .. '/.luarc.json') or vim.uv.fs_stat(path .. '/.luarc.jsonc')) then
+              return
+            end
           end
 
           client.config.settings.Lua = vim.tbl_deep_extend('force', client.config.settings.Lua, {
@@ -793,12 +792,20 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
-        mojo = { 'lsp_format' },
+        mojo = { 'mojo_format' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
+      },
+      formatters = {
+        mojo_format = {
+          command = function(_, ctx)
+            local mojo = require 'custom.mojo'
+            return mojo.executable(mojo.root(ctx.filename), 'mojo')
+          end,
+        },
       },
     },
   },
@@ -971,77 +978,7 @@ require('lazy').setup({
       --  Check out: https://github.com/echasnovski/mini.nvim
     end,
   },
-  { -- Highlight, edit, and navigate code
-    'nvim-treesitter/nvim-treesitter',
-    build = ':TSUpdate',
-    main = 'nvim-treesitter',
-    dependencies = {
-      'nvim-treesitter/nvim-treesitter-textobjects',
-      'nvim-treesitter/nvim-treesitter-context',
-    },
-    config = function(_, opts)
-      require('nvim-treesitter.parsers').mojo = {
-        install_info = {
-          url = 'https://github.com/lsh/tree-sitter-mojo',
-          files = { 'src/parser.c', 'src/scanner.c' },
-          branch = 'main',
-        },
-        filetype = 'mojo',
-      }
-      require('nvim-treesitter').setup(opts)
-    end,
-    opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'mojo' },
-      auto_install = true,
-      highlight = { enable = true },
-      indent = { enable = true },
-      textobjects = {
-        select = {
-          enable = true,
-          lookahead = true,
-          keymaps = {
-            ['aa'] = '@parameter.outer',
-            ['ia'] = '@parameter.inner',
-            ['af'] = '@function.outer',
-            ['if'] = '@function.inner',
-            ['ac'] = '@class.outer',
-            ['ic'] = '@class.inner',
-            ['ab'] = '@block.outer',
-            ['ib'] = '@block.inner',
-          },
-        },
-        move = {
-          enable = true,
-          set_jumps = true,
-          goto_next_start = {
-            [']m'] = '@function.outer',
-            [']]'] = '@class.outer',
-          },
-          goto_next_end = {
-            [']M'] = '@function.outer',
-            [']['] = '@class.outer',
-          },
-          goto_previous_start = {
-            ['[m'] = '@function.outer',
-            ['[['] = '@class.outer',
-          },
-          goto_previous_end = {
-            ['[M'] = '@function.outer',
-            ['[]'] = '@class.outer',
-          },
-        },
-        swap = {
-          enable = true,
-          swap_next = {
-            ['<leader>sn'] = '@parameter.inner',
-          },
-          swap_previous = {
-            ['<leader>sp'] = '@parameter.inner',
-          },
-        },
-      },
-    },
-  },
+  require 'kickstart.plugins.treesitter',
 
   -- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
   -- init.lua. If you want these files, they are in the repository, so you can just download them and
