@@ -227,7 +227,7 @@ Most custom keybindings start with the leader key.
 
 | Key | Mode | Description |
 |-----|------|-------------|
-| `<leader>q` | n | Open diagnostic quickfix list |
+| `<leader>q` | n | Open diagnostic location list |
 | `[d` | n | Previous diagnostic |
 | `]d` | n | Next diagnostic |
 | `<leader>xx` | n | Diagnostics (Trouble) |
@@ -262,7 +262,7 @@ Most custom keybindings start with the leader key.
 
 | Key | Mode | Description |
 |-----|------|-------------|
-| `\` | n | Toggle file explorer (reveal current file) |
+| `\` | n | Reveal current file in Neo-tree |
 
 ### Inside Neo-tree
 
@@ -282,7 +282,7 @@ Most custom keybindings start with the leader key.
 | `R` | n | Refresh |
 | `H` | n | Toggle hidden files |
 | `/` | n | Filter |
-| `<C-h>` | n | Change root to parent |
+| `<BS>` | n | Change root to parent |
 | `\` | n | Close window |
 | `?` | n | Show all keymaps |
 | `q` | n | Close |
@@ -293,8 +293,8 @@ Most custom keybindings start with the leader key.
 
 | Key | Mode | Description |
 |-----|------|-------------|
-| `]h` | n | Next git hunk |
-| `[h` | n | Previous git hunk |
+| `]c` | n | Next git hunk |
+| `[c` | n | Previous git hunk |
 | `<leader>hs` | n | Stage hunk |
 | `<leader>hr` | n | Reset hunk |
 | `<leader>hS` | n | Stage buffer |
@@ -304,7 +304,8 @@ Most custom keybindings start with the leader key.
 | `<leader>hb` | n | Blame line |
 | `<leader>hd` | n | Diff this |
 | `<leader>tb` | n | Toggle blame line |
-| `<leader>hd` | n | Diff this (~) |
+| `<leader>hD` | n | Diff against last commit |
+| `<leader>tD` | n | Preview deleted lines inline |
 | `<leader>hs` | v | Stage hunk (visual) |
 | `<leader>hr` | v | Reset hunk (visual) |
 
@@ -352,11 +353,11 @@ Most custom keybindings start with the leader key.
 | Key | Mode | Description |
 |-----|------|-------------|
 | `<leader>a` | n | Add current file to harpoon |
-| `<C-e>` | n | Toggle harpoon menu |
-| `<C-h>` | n | Jump to harpoon file 1 |
-| `<C-j>` | n | Jump to harpoon file 2 |
-| `<C-k>` | n | Jump to harpoon file 3 |
-| `<C-l>` | n | Jump to harpoon file 4 |
+| `<leader>e` | n | Toggle harpoon menu |
+| `<leader>1` | n | Jump to harpoon file 1 |
+| `<leader>2` | n | Jump to harpoon file 2 |
+| `<leader>3` | n | Jump to harpoon file 3 |
+| `<leader>4` | n | Jump to harpoon file 4 |
 
 ### Inside Harpoon Menu
 
@@ -381,14 +382,25 @@ Most custom keybindings start with the leader key.
 
 ## Copilot
 
+### Blink Completion
+
 | Key | Mode | Description |
 |-----|------|-------------|
-| `<C-y>` | i | Accept suggestion |
-| `<C-Right>` | i | Accept word |
-| `<C-Down>` | i | Accept line |
-| `<C-n>` | i | Next suggestion |
-| `<C-p>` | i | Previous suggestion |
-| `<C-e>` | i | Dismiss suggestion |
+| `<C-y>` | i | Accept completion |
+| `<C-n>` | i | Select next completion |
+| `<C-p>` | i | Select previous completion |
+| `<C-e>` | i | Hide completion menu |
+
+### Copilot Suggestions
+
+| Key | Mode | Description |
+|-----|------|-------------|
+| `<M-l>` | i | Accept suggestion |
+| `<M-w>` | i | Accept word |
+| `<M-j>` | i | Accept line |
+| `<M-]>` | i | Next suggestion |
+| `<M-[>` | i | Previous suggestion |
+| `<M-e>` | i | Dismiss suggestion |
 
 ### Commands
 
@@ -465,27 +477,27 @@ Sessions are automatically saved on exit.
 
 | Key | Mode | Description |
 |-----|------|-------------|
-| `ys{motion}{char}` | n | Add surround |
-| `yss{char}` | n | Add surround to line |
-| `ds{char}` | n | Delete surround |
-| `cs{old}{new}` | n | Change surround |
+| `sa{motion}{char}` | n | Add surround |
+| `saiw{char}` | n | Add surround to inner word |
+| `sd{char}` | n | Delete surround |
+| `sr{old}{new}` | n | Replace surround |
 
 ### Examples
 
 | Command | Result |
 |---------|--------|
-| `ysiw"` | Surround word with `"` |
-| `ysiw)` | Surround word with `()` |
-| `yss"` | Surround line with `"` |
-| `ds"` | Delete `"` surround |
-| `cs"')` | Change `"` to `()` |
-| `dsq` | Delete surrounding quote |
+| `saiw"` | Surround word with `"` |
+| `saiw)` | Surround word with `()` |
+| `sai_"` | Surround line with `"` |
+| `sd"` | Delete `"` surround |
+| `sr")` | Replace `"` with `()` |
+| `sdq` | Delete surrounding quote |
 
 ### In Visual Mode
 
 | Key | Mode | Description |
 |-----|------|-------------|
-| `S{char}` | x | Surround selection |
+| `sa{char}` | x | Surround selection |
 
 ---
 
@@ -534,14 +546,12 @@ Press `<leader>` and wait to see available keymaps.
 | Prefix | Description |
 |--------|-------------|
 | `<leader>c` | Code |
-| `<leader>d` | Document |
-| `<leader>r` | Rename |
 | `<leader>s` | Search |
 | `<leader>w` | Workspace |
 | `<leader>t` | Toggle |
 | `<leader>h` | Git hunk |
 | `<leader>x` | Trouble |
-| `<leader>q` | Session/Quickfix |
+| `<leader>q` | Diagnostics/Session |
 
 ---
 
@@ -584,14 +594,14 @@ Press `<leader>` and wait to see available keymaps.
 
 | File | Description |
 |------|-------------|
-| `~/.config/nvim/init.lua` | Main configuration |
-| `~/.config/nvim/lua/custom/plugins/` | Custom plugins |
-| `~/.config/nvim/lua/kickstart/plugins/` | Kickstart plugins |
+| `~/.config/nvim/init.lua` | Startup sequencing |
+| `~/.config/nvim/lua/custom/core.lua` | Editor policy and global mappings |
+| `~/.config/nvim/lua/custom/plugins/` | Plugin specs by subsystem |
 | `~/.local/share/nvim/` | Plugin data |
 | `~/.local/state/nvim/` | State files (undo, sessions) |
 | `~/.cache/nvim/` | Cache files |
 
 ---
 
-*Generated for kickstart.nvim configuration*
-*Last updated: 2025*
+*Generated for this Neovim configuration*
+*Last updated: 2026-07-29*

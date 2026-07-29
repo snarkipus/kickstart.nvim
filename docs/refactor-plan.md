@@ -89,8 +89,7 @@ This also restores native normal-mode `<C-e>` scrolling.
 
 - Blink owns the standard insert-mode completion keys, including `<C-y>`,
   `<C-n>`, `<C-p>`, and `<C-e>`.
-- Copilot uses explicit Alt-based mappings because the pinned and current
-  plugin releases do not provide suggestion key defaults:
+- Copilot uses explicit Alt-based mappings as a complete, visible key policy:
   - `<M-l>` accepts the suggestion.
   - `<M-]>` and `<M-[>` select the next and previous suggestions.
   - `<M-w>` and `<M-j>` accept the next word and line.
@@ -121,8 +120,8 @@ This also restores native normal-mode `<C-e>` scrolling.
 - Do not create one file per server.
 - Configure and enable every server exactly once.
 - Keep Mojo excluded from Mason because its tools are project-local.
-- Register all LSP mappings and lifecycle behavior from one `LspAttach`
-  handler.
+- Register mappings and attachment behavior from one `LspAttach` handler, with
+  one global `LspDetach` handler for cleanup.
 
 ## Target Layout
 
@@ -325,8 +324,9 @@ dependencies.
     after confirming its specific capture exists in the active language's
     `textobjects` query. Do not install an all-or-nothing mapping bundle based
     only on query-file presence.
-11. Remove Neo-tree's eager `lazy = false` setting and load it through its key
-    or command.
+11. Load Neo-tree through its key or command for normal starts, but load it
+    eagerly when Neovim's sole startup argument is a directory so netrw does not
+    claim that buffer first.
 12. Add missing Which-key groups where they improve discoverability.
 
 ### Phase 5: Health And Documentation
