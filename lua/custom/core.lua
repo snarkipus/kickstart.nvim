@@ -10,6 +10,9 @@ vim.g.loaded_perl_provider = 0
 vim.o.number = true
 vim.o.mouse = 'a'
 vim.o.showmode = false
+if vim.env.SSH_TTY then
+  vim.g.clipboard = 'osc52'
+end
 vim.schedule(function()
   vim.o.clipboard = 'unnamedplus'
 end)
